@@ -4,13 +4,15 @@
 #define INCLUDE_EXAMPLE_HPP_
 
 #include <rocksdb/db.h>
-#include <rocksdb/slice.h>
 #include <rocksdb/options.h>
-#include <iostream>
+#include <rocksdb/slice.h>
+
 #include <iomanip>
+#include <iostream>
 
 #include "../third-party/PicoSHA2/picosha2.h"
 #include "../third-party/ThreadPool/ThreadPool.h"
+#include "Addition.hpp"
 
 using ROCKSDB_NAMESPACE::ColumnFamilyDescriptor;
 using ROCKSDB_NAMESPACE::ColumnFamilyHandle;
@@ -24,21 +26,16 @@ using ROCKSDB_NAMESPACE::Status;
 using ROCKSDB_NAMESPACE::WriteBatch;
 using ROCKSDB_NAMESPACE::WriteOptions;
 
-struct CmdArgs {
-  std::string log_lvl;
-  std::string output;
-  std::string input;
-  unsigned int threads;
-};
-
 class ChecksumCalc {
  public:
   ChecksumCalc();
   ~ChecksumCalc();
 
  private:
+  void read(const CmdArgs& cmd);
   void read_db();
   void read_column(rocksdb::Iterator* iter, size_t i);
+  void write(const CmdArgs& cmd);
   void write_db();
   void write_column(ColumnFamilyHandle* handle,
                     const std::vector<std::string>& column_keys,
@@ -61,4 +58,4 @@ class ChecksumCalc {
 
 void print_db(DB* db, const std::vector<ColumnFamilyHandle*>& handles);
 
-#endif // INCLUDE_EXAMPLE_HPP_
+#endif  // INCLUDE_EXAMPLE_HPP_

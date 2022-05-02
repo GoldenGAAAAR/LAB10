@@ -17,26 +17,30 @@ void ChecksumCalc::run(const CmdArgs& cmd) {
   options.create_if_missing = false;
 
   // Open input DB
+  BOOST_LOG_TRIVIAL(info) << "Open data base: " << cmd.input << ";";
   std::vector<std::string> cf;
   Status s = DB::ListColumnFamilies(rocksdb::DBOptions(), cmd.input, &cf);
-  assert(s.ok());
+  if (!s.ok()) throw std::runtime_error(s.ToString());
+
   std::vector<ColumnFamilyDescriptor> column_families;
   for (auto& i : cf) {
     column_families.push_back(ColumnFamilyDescriptor(i, ColumnFamilyOptions()));
   }
   s = DB::Open(options, cmd.input, column_families, &_handles, &_db);
-  assert(s.ok());
-
+  if (!s.ok()) throw std::runtime_error(s.ToString());
   print_db(_db, _handles);
 
   // Read keys and values
+  BOOST_LOG_TRIVIAL(info) << "Read keys and values from data base: "
+                          << cmd.input <<";";
   _pool = new ThreadPool(cmd.threads);
   read_db();
 
   // Close input DB
+  BOOST_LOG_TRIVIAL(info) << "Close database: " << cmd.input << ";";
   for (auto handle : _handles) {
     s = _db->DestroyColumnFamilyHandle(handle);
-    assert(s.ok());
+    if (!s.ok()) throw std::runtime_error(s.ToString());
   }
   delete _db;
   delete _pool;
@@ -45,25 +49,30 @@ void ChecksumCalc::run(const CmdArgs& cmd) {
   _handles.clear();
 
   // Calculate checksum
+  BOOST_LOG_TRIVIAL(info) << "Calculate checksum;";
   checksum();
 
   // Set options
   options.create_if_missing = true;
   options.create_missing_column_families = true;
+  options.error_if_exists = true;
 
   // Open output DB
+  BOOST_LOG_TRIVIAL(info) << "Open data base: " << cmd.output << ";";
   s = DB::Open(options, cmd.output, column_families, &_handles, &_db);
-  assert(s.ok());
+  if (!s.ok()) throw std::runtime_error(s.ToString());
 
   // Write keys and values
+  BOOST_LOG_TRIVIAL(info) << "Write keys and values to data base: "
+                          << cmd.output << ";";
   write_db();
-
   print_db(_db, _handles);
 
   // Close output DB
+  BOOST_LOG_TRIVIAL(info) << "Close data base: " << cmd.output << ";";
   for (auto handle : _handles) {
     s = _db->DestroyColumnFamilyHandle(handle);
-    assert(s.ok());
+    if (!s.ok()) throw std::runtime_error(s.ToString());
   }
   delete _db;
   _db = nullptr;
@@ -120,7 +129,7 @@ void ChecksumCalc::write_column(ColumnFamilyHandle* handle,
   }
 
   Status s = _db->Write(WriteOptions(), &batch);
-  assert(s.ok());
+  if (!s.ok()) BOOST_LOG_TRIVIAL(error) << s.ToString();
 }
 
 void ChecksumCalc::checksum() {
@@ -145,20 +154,20 @@ void print_db(DB* db, const std::vector<ColumnFamilyHandle*>& handles) {
   bool stop_flag = false;
 
   if (handles.empty()) {
-    std::cout << "Empty data base." << std::endl;
+    BOOST_LOG_TRIVIAL(warning) << "Empty data base.";
     return;
   }
-  std::cout << "|";
+  std::cout << "\n|";
 
   for (size_t i = 0; i < handles.size(); ++i) {
     iterators.push_back(db->NewIterator(ReadOptions(), handles[i]));
     iterators[i]->SeekToFirst();
-    std::cout << " column family |";
+    std::cout << std::setw(70) << handles[i]->GetName() << " |";
   }
 
   std::cout << "\n|";
   for (size_t i = 0; i < handles.size(); ++i) {
-    std::cout << std::setfill('-') << std::setw(16) << "|" << std::setfill(' ');
+    std::cout << std::setfill('-') << std::setw(72) << "|" << std::setfill(' ');
   }
 
   while(!stop_flag) {
@@ -166,18 +175,18 @@ void print_db(DB* db, const std::vector<ColumnFamilyHandle*>& handles) {
     std::cout << "\n|";
     for (auto iter : iterators) {
       if (!iter->Valid()) {
-        std::cout << std::setw(16) << " |";
+        std::cout << std::setw(72) << " |";
       } else {
         stop_flag = false;
         std::stringstream ss;
         ss << iter->key().ToString() << ":" << iter->value().ToString();
-        std::cout << std::setw(14) << ss.str() << " |";
+        std::cout << std::setw(70) << ss.str() << " |";
         iter->Next();
       }
     }
     std::cout << "\n|";
     for (size_t i = 0; i < handles.size(); ++i) {
-      std::cout << std::setfill('-') << std::setw(16) << "|" << std::setfill(' ');
+      std::cout << std::setfill('-') << std::setw(72) << "|" << std::setfill(' ');
     }
   }
 

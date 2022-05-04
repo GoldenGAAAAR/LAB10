@@ -1,7 +1,7 @@
 // Copyright 2022 VladislavRz <rzhevskii_vladislav@mail.ru>
 
-#ifndef INCLUDE_CHEKCSUMCALC_HPP_
-#define INCLUDE_CHEKCSUMCALC_HPP_
+#ifndef INCLUDE_CHECKSUMCALC_HPP_
+#define INCLUDE_CHECKSUMCALC_HPP_
 
 #include <rocksdb/db.h>
 #include <rocksdb/options.h>
@@ -62,4 +62,4 @@ class ChecksumCalc {
 
 void print_db(DB* db, const std::vector<ColumnFamilyHandle*>& handles);
 
-#endif  // INCLUDE_CHEKCSUMCALC_HPP_
+#endif  // INCLUDE_CHECKSUMCALC_HPP_

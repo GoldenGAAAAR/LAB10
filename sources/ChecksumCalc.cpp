@@ -2,9 +2,7 @@
 
 #include <ChecksumCalc.hpp>
 
-ChecksumCalc::ChecksumCalc()
-    :_db(nullptr)
-    ,_pool(nullptr) {}
+ChecksumCalc::ChecksumCalc() : _db(nullptr), _pool(nullptr) {}
 
 ChecksumCalc::~ChecksumCalc() {
   delete _db;
@@ -12,27 +10,46 @@ ChecksumCalc::~ChecksumCalc() {
 }
 
 void ChecksumCalc::run(const CmdArgs& cmd) {
-  // Set options
+  std::vector<ColumnFamilyDescriptor> column_families;
+
+  // Read input data base
+  BOOST_LOG_TRIVIAL(info) << "Read input data;";
+  read(cmd, column_families);
+
+  // Calculate checksum
+  BOOST_LOG_TRIVIAL(info) << "Calculate checksum;";
+  checksum();
+
+  // Write output data base
+  BOOST_LOG_TRIVIAL(info) << "Write output data;";
+  write(cmd, column_families);
+}
+
+void ChecksumCalc::read(const CmdArgs& cmd,
+                        std::vector<ColumnFamilyDescriptor>& column_families) {
   Options options;
+
+  // Set options
   options.create_if_missing = false;
 
-  // Open input DB
+  // Get column families names
   BOOST_LOG_TRIVIAL(info) << "Open data base: " << cmd.input << ";";
   std::vector<std::string> cf;
   Status s = DB::ListColumnFamilies(rocksdb::DBOptions(), cmd.input, &cf);
   if (!s.ok()) throw std::runtime_error(s.ToString());
 
-  std::vector<ColumnFamilyDescriptor> column_families;
   for (auto& i : cf) {
     column_families.push_back(ColumnFamilyDescriptor(i, ColumnFamilyOptions()));
   }
+
+  // Open input DB
   s = DB::Open(options, cmd.input, column_families, &_handles, &_db);
   if (!s.ok()) throw std::runtime_error(s.ToString());
   print_db(_db, _handles);
 
   // Read keys and values
   BOOST_LOG_TRIVIAL(info) << "Read keys and values from data base: "
-                          << cmd.input <<";";
+                          << cmd.input << ";";
   _pool = new ThreadPool(cmd.threads);
   read_db();
 
@@ -47,35 +64,6 @@ void ChecksumCalc::run(const CmdArgs& cmd) {
   _db = nullptr;
   _pool = nullptr;
   _handles.clear();
-
-  // Calculate checksum
-  BOOST_LOG_TRIVIAL(info) << "Calculate checksum;";
-  checksum();
-
-  // Set options
-  options.create_if_missing = true;
-  options.create_missing_column_families = true;
-  options.error_if_exists = true;
-
-  // Open output DB
-  BOOST_LOG_TRIVIAL(info) << "Open data base: " << cmd.output << ";";
-  s = DB::Open(options, cmd.output, column_families, &_handles, &_db);
-  if (!s.ok()) throw std::runtime_error(s.ToString());
-
-  // Write keys and values
-  BOOST_LOG_TRIVIAL(info) << "Write keys and values to data base: "
-                          << cmd.output << ";";
-  write_db();
-  print_db(_db, _handles);
-
-  // Close output DB
-  BOOST_LOG_TRIVIAL(info) << "Close data base: " << cmd.output << ";";
-  for (auto handle : _handles) {
-    s = _db->DestroyColumnFamilyHandle(handle);
-    if (!s.ok()) throw std::runtime_error(s.ToString());
-  }
-  delete _db;
-  _db = nullptr;
 }
 
 void ChecksumCalc::read_db() {
@@ -114,8 +102,39 @@ void ChecksumCalc::read_column(rocksdb::Iterator* iter, size_t i) {
   _keyval_mutex.unlock();
 }
 
+void ChecksumCalc::write(
+    const CmdArgs& cmd,
+    const std::vector<ColumnFamilyDescriptor>& column_families) {
+  Options options;
+
+  // Set options
+  options.create_if_missing = true;
+  options.create_missing_column_families = true;
+  options.error_if_exists = true;
+
+  // Open output DB
+  BOOST_LOG_TRIVIAL(info) << "Open data base: " << cmd.output << ";";
+  Status s = DB::Open(options, cmd.output, column_families, &_handles, &_db);
+  if (!s.ok()) throw std::runtime_error(s.ToString());
+
+  // Write keys and values
+  BOOST_LOG_TRIVIAL(info) << "Write keys and values to data base: "
+                          << cmd.output << ";";
+  write_db();
+  print_db(_db, _handles);
+
+  // Close output DB
+  BOOST_LOG_TRIVIAL(info) << "Close data base: " << cmd.output << ";";
+  for (auto handle : _handles) {
+    s = _db->DestroyColumnFamilyHandle(handle);
+    if (!s.ok()) throw std::runtime_error(s.ToString());
+  }
+  delete _db;
+  _db = nullptr;
+}
+
 void ChecksumCalc::write_db() {
-  for(size_t i = 0; i < _handles.size(); ++i) {
+  for (size_t i = 0; i < _handles.size(); ++i) {
     write_column(_handles[i], _keys[i], _hashes[i]);
   }
 }
@@ -170,7 +189,7 @@ void print_db(DB* db, const std::vector<ColumnFamilyHandle*>& handles) {
     std::cout << std::setfill('-') << std::setw(72) << "|" << std::setfill(' ');
   }
 
-  while(!stop_flag) {
+  while (!stop_flag) {
     stop_flag = true;
     std::cout << "\n|";
     for (auto iter : iterators) {
@@ -186,7 +205,8 @@ void print_db(DB* db, const std::vector<ColumnFamilyHandle*>& handles) {
     }
     std::cout << "\n|";
     for (size_t i = 0; i < handles.size(); ++i) {
-      std::cout << std::setfill('-') << std::setw(72) << "|" << std::setfill(' ');
+      std::cout << std::setfill('-') << std::setw(72) << "|"
+                << std::setfill(' ');
     }
   }
 

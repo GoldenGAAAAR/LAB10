@@ -1,7 +1,7 @@
 // Copyright 2022 VladislavRz <rzhevskii_vladislav@mail.ru>
 
-#ifndef INCLUDE_EXAMPLE_HPP_
-#define INCLUDE_EXAMPLE_HPP_
+#ifndef INCLUDE_CHEKCSUMCALC_HPP_
+#define INCLUDE_CHEKCSUMCALC_HPP_
 
 #include <rocksdb/db.h>
 #include <rocksdb/options.h>
@@ -9,9 +9,11 @@
 
 #include <iomanip>
 #include <iostream>
+#include <string>
+#include <vector>
 
 #include "../third-party/PicoSHA2/picosha2.h"
-#include "../third-party/ThreadPool/ThreadPool.h"
+#include "ThreadPool.hpp"
 #include "Addition.hpp"
 
 using ROCKSDB_NAMESPACE::ColumnFamilyDescriptor;
@@ -32,10 +34,12 @@ class ChecksumCalc {
   ~ChecksumCalc();
 
  private:
-  void read(const CmdArgs& cmd);
+  void read(const CmdArgs& cmd,
+            std::vector<ColumnFamilyDescriptor>& column_families);
   void read_db();
   void read_column(rocksdb::Iterator* iter, size_t i);
-  void write(const CmdArgs& cmd);
+  void write(const CmdArgs& cmd,
+             const std::vector<ColumnFamilyDescriptor>& column_families);
   void write_db();
   void write_column(ColumnFamilyHandle* handle,
                     const std::vector<std::string>& column_keys,
@@ -58,4 +62,4 @@ class ChecksumCalc {
 
 void print_db(DB* db, const std::vector<ColumnFamilyHandle*>& handles);
 
-#endif  // INCLUDE_EXAMPLE_HPP_
+#endif  // INCLUDE_CHEKCSUMCALC_HPP_

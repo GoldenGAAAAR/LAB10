@@ -12,6 +12,7 @@
 #include <boost/log/utility/setup/console.hpp>
 #include <boost/log/utility/setup/file.hpp>
 #include <boost/program_options.hpp>
+#include <string>
 
 namespace logging = boost::log;
 namespace keywords = boost::log::keywords;

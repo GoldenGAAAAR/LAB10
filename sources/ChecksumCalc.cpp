@@ -1,4 +1,4 @@
-// Copyright 2022 VladislavRZ <rzhevskii_vladislav@mail.ru>
+// Copyright 2021 Your Name <your_email>
 
 #include <ChecksumCalc.hpp>
 

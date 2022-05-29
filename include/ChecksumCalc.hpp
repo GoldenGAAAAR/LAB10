@@ -1,4 +1,4 @@
-// Copyright 2022 VladislavRz <rzhevskii_vladislav@mail.ru>
+// Copyright 2021 Your Name <your_email>
 
 #ifndef INCLUDE_CHECKSUMCALC_HPP_
 #define INCLUDE_CHECKSUMCALC_HPP_

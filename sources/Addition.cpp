@@ -1,4 +1,5 @@
-// Copyright 2022 VladislavRZ <rzhevskii_vladislav@mail.ru>
+// Copyright 2021 Your Name <your_email>
+
 #include "Addition.hpp"
 
 bool parse_cmd(int argc, char* argv[], CmdArgs& cmd_args) {
